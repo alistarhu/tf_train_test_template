@@ -164,7 +164,7 @@ def main():
             feed_dict = {inputs:train_img_batch, labels:train_label_batch}
 
             # train each step
-            _, _lr, summary_train, _loss, _acc = sess.run([train_op, lr, summary_summary_train, total_loss, acc], feed_dict=feed_dict)
+            _, _lr, summary_train, _loss, _acc = sess.run([train_op, lr, merge_summary_train, total_loss, acc], feed_dict=feed_dict)
             writer_train.add_summary(summary_train, _step)
             # print logs and write summary per epoch
             if _step % num_batches_per_epoch == 0:
