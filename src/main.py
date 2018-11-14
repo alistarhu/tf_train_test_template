@@ -176,8 +176,8 @@ def main():
                     valid_img_batch, valid_label_batch = sess.run([img_batch_valid, label_batch_valid])
                     valid_dict = {inputs: valid_img_batch, labels: valid_label_batch}
                     valid_loss, valid_acc = sess.run([total_loss, acc], feed_dict=valid_dict)
-                    valid_loss_sum += valid_loss
-                    valid_acc_sum += valid_acc
+                    valid_loss_sum += valid_loss/args.batch_size
+                    valid_acc_sum += valid_acc/args.batch_size
                 valid_loss_sum = valid_loss_sum/valid_step
                 valid_acc_sum = valid_acc_sum/valid_step
                 
