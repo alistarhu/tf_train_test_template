@@ -21,9 +21,9 @@ def get_paramters():
     parser.add_argument('--width', type=int, default=64)######
     parser.add_argument('--channel', type=int, default=3)
     
-    parser.add_argument('--learning_rate', type=float, default=0.001)
-    parser.add_argument('--lr_decay', type=float, default=0.98)
-    parser.add_argument('--num_epochs_per_decay', type=int, default=10)
+    parser.add_argument('--learning_rate', type=float, default=0.01)#0.001
+    parser.add_argument('--lr_decay', type=float, default=0.8685)#0.98
+    parser.add_argument('--num_epochs_per_decay', type=int, default=4)#10
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     
     parser.add_argument('--optimizer', type=str, default='adam')
@@ -127,16 +127,22 @@ def main():
                 #print('use mom!!!\n')
             else:
                 train_op = tf.train.GradientDescentOptimizer(lr)
-        # summary
-        tf.summary.scalar('total_loss', total_loss)
-        tf.summary.scalar('accuracy', acc)
-        tf.summary.scalar('learning_rate', lr)
-        summary_op = tf.summary.merge_all()
-
+        
         # summary writer
         if not os.path.exists(args.logs_dir):
             os.mkdir(args.logs_dir)
-        writer = tf.summary.FileWriter(args.logs_dir, sess.graph)
+            os.makedirs(os.path.join(args.logs_dir, 'train'), exist_ok=True)
+            os.makedirs(os.path.join(args.logs_dir, 'validate'), exist_ok=True)
+        writer_train = tf.summary.FileWriter(os.path.join(args.logs_dir, 'train'), sess.graph)
+        writer_validate = tf.summary.FileWriter(os.path.join(args.logs_dir, 'validate'))
+        
+        # summary
+        loss_summary = tf.summary.scalar('total_loss', total_loss)
+        acc_summary = tf.summary.scalar('accuracy', acc)
+        lr_summary = tf.summary.scalar('learning_rate', lr)
+        merge_summary_train = tf.summary.merge([loss_summary, acc_summary, lr_summary])
+        merge_summary_valid = tf.summary.merge([loss_summary, acc_summary])
+        #summary_op = tf.summary.merge_all()
         
         # variable init
         sess.run(tf.global_variables_initializer())
@@ -158,8 +164,8 @@ def main():
             feed_dict = {inputs:train_img_batch, labels:train_label_batch}
 
             # train each step
-            _, _lr, _sum, _loss, _acc = sess.run([train_op, lr, summary_op, total_loss, acc], feed_dict=feed_dict)
-
+            _, _lr, summary_train, _loss, _acc = sess.run([train_op, lr, summary_summary_train, total_loss, acc], feed_dict=feed_dict)
+            writer_train.add_summary(summary_train, _step)
             # print logs and write summary per epoch
             if _step % num_batches_per_epoch == 0:
                 # run validate per each epoch
@@ -174,8 +180,11 @@ def main():
                     valid_acc_sum += valid_acc
                 valid_loss_sum = valid_loss_sum/valid_step
                 valid_acc_sum = valid_acc_sum/valid_step
-
-                writer.add_summary(_sum, _step)
+                
+                # summary test
+                summary_valid = sess.run(merge_summary_valid, feed_dict={total_loss:valid_loss_sum, acc:valid_acc_sum})
+                writer_validate.add_summary(summary_valid, _step)
+            
                 print('epoch:{0}  global_step:{1}, time:{2:.3f}, lr:{3:.8f}, train acc:{4:.6f}, train loss:{5:.6f}, valid acc:{6:.6f}, \
 valid loss:{7:.6f}'.format(_step//num_batches_per_epoch, _step, time.time() - start_time, _lr, _acc, _loss, valid_acc_sum, valid_loss_sum))
                 f.write('epoch:{0}  global_step:{1}, time:{2:.3f}, lr:{3:.8f}, train acc:{4:.6f}, train loss:{5:.6f}, valid acc:{6:.6f}, \
